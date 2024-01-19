@@ -1,3 +1,22 @@
+
+//! Remove DXF files
+//! 
+//! This takes care of the problem of DXF files that are used as an
+//! intermediate format between NX and Sigmanest taking up too much
+//! server space. These files are used so that we do not version
+//! lock the two softwares.
+//! 
+//! This utility, broadly speaking, finds any file matching the glob
+//! pattern `\\hssieng\Jobs\**\Fab\**\DXF\*.dxf` where
+//! - The file is older than 60 days
+//! - The file also has an associated `.log` file
+//! 
+//! This ensures that we are not deleted DXF files that are not yet
+//! imported, as well as ones that did not originate from NX (generally,
+//! only the NX generated DXF's will have an associated `.log` file.
+//! The found files are then deleted. 
+
+
 use std::error::Error;
 use std::{fs, sync::OnceLock};
 use std::path::Path;
@@ -14,7 +33,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     DXF_FILES.set( Glob::new("*.dxf")? ).expect("Failed to set `DXF_FILES` Glob pattern");
 
-    // walk DXF folders so that we can filter 
+    // walk DXF folders so that we can filter out folders based on last modified
     let deleted: u32 = Glob::new("**/Fab/**/DXF")?
         .walk(Path::new(ROOT_DIR))
         .filter_tree(filter_dxf_folders)
